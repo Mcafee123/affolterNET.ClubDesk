@@ -12,6 +12,8 @@ The C# console application **_affolterNET.ClubDesk.Terminal_** starts a cypress 
 
 ## Environment variables to set
 
+### Do this in **_run.sh_**
+
 * **email**: User-E-Mail
 * **pw**: User-Password
-* **projectroot**: Relative Path from the executable to the folder with "affolterNET.ClubDesk.Terminal", "data", "scraper", etc.
+* **projectroot**: Relative Path from the executable to the folder with "affolterNET.ClubDesk.Terminal", "data", "scraper", etc. **Works with defaults when using the scripts**.
