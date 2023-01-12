@@ -1,0 +1,15 @@
+{
+  "name": "scraper",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "cypress run --env flags='{\"email\":\"ADD E-MAIL\",\"pw\":\"ADD PW\",\"year\":\"2022\"}' --spec 'cypress/e2e/clubdesk.cy.js'",
+    "open": "cypress open --env flags='{\"email\":\"ADD E-MAIL\",\"pw\":\"ADD PW\",\"year\":\"2022\"}'"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cypress": "^12.3.0"
+  }
+}

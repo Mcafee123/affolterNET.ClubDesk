@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "affolterNET.ClubDesk.Terminal", "affolterNET.ClubDesk.Terminal\affolterNET.ClubDesk.Terminal.csproj", "{FA4AFA07-F937-447A-B9C1-276B78046AD0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "affolterNET.ClubDesk.Core", "affolterNET.ClubDesk.Core\affolterNET.ClubDesk.Core.csproj", "{B36F3BC3-EFBE-4390-AAE0-D14BD400E3FD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FA4AFA07-F937-447A-B9C1-276B78046AD0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FA4AFA07-F937-447A-B9C1-276B78046AD0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FA4AFA07-F937-447A-B9C1-276B78046AD0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FA4AFA07-F937-447A-B9C1-276B78046AD0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B36F3BC3-EFBE-4390-AAE0-D14BD400E3FD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B36F3BC3-EFBE-4390-AAE0-D14BD400E3FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B36F3BC3-EFBE-4390-AAE0-D14BD400E3FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B36F3BC3-EFBE-4390-AAE0-D14BD400E3FD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
