@@ -46,3 +46,4 @@ __*.sh
 /scraper/cypress/videos
 /scraper/cypress/screenshots
 /data
+/affolterNET.ClubDesk.Terminal/pub

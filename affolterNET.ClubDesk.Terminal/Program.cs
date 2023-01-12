@@ -4,22 +4,33 @@ using Microsoft.Extensions.Configuration;
 // config
 var builder = new ConfigurationBuilder();
 var config = builder
-    .AddEnvironmentVariables()
     .AddUserSecrets<Program>()
+    .AddEnvironmentVariables()
     .Build();
 var email = config.GetValue<string>("email");
 ArgumentNullException.ThrowIfNull(email);
 
 var pw = config.GetValue<string>("pw");
 ArgumentNullException.ThrowIfNull(pw);
+var relativeProjectRoot = config.GetValue<string>("projectroot");
+if (string.IsNullOrWhiteSpace(relativeProjectRoot))
+{
+    relativeProjectRoot = Path.Combine("..", "..", "..", "..");
+}
+
+// var env = Environment.GetEnvironmentVariables();
+// foreach (var key in env.Keys)
+// {
+//     Console.WriteLine("{0}: {1}", key, env[key]);
+// }
 
 // scraper tool
-var scraperPath = Path.Combine(Environment.CurrentDirectory, "..", "..", "..", "..", "scraper").Normalize();
+var scraperPath = Path.Combine(Environment.CurrentDirectory, relativeProjectRoot, "scraper").Normalize();
 if (!Directory.Exists(scraperPath))
 {
     throw new DirectoryNotFoundException($"Scraper-Path \"{scraperPath}\" not found!");
 }
-var dataPath = Path.Combine(Environment.CurrentDirectory, "..", "..", "..", "..", "data").Normalize();
+var dataPath = Path.Combine(Environment.CurrentDirectory, relativeProjectRoot, "data").Normalize();
 if (!Directory.Exists(dataPath))
 {
     throw new DirectoryNotFoundException($"Data-Path \"{dataPath}\" not found!");
@@ -58,6 +69,11 @@ while (y <= currentYear)
     }
     else
     {
+        if (File.Exists(renamedOutput))
+        {
+            File.Delete(renamedOutput);
+        }
+
         File.Move(outputFile, renamedOutput);
         retries = 0;
         y++;
