@@ -24,6 +24,17 @@
 // -- This will overwrite an existing command --
 // Cypress.Commands.overwrite('visit', (originalFn, url, options) => { ... })
 
+Cypress.Commands.add('login', () => {
+  const uri = 'https://app.clubdesk.com'
+  const paras = Cypress.env('flags')
+  cy.log(paras.email)
+  cy.visit(uri)
+  cy.get('#userId').type(paras.email)
+  cy.get('#password').type(paras.pw)
+  cy.get('.cdButtonPrimary').click()
+  cy.wait(3000)
+})
+
 Cypress.Commands.add('clickLink', (txt) => {
   cy.get('div.GIIYKVVBFB-com-sencha-gxt-theme-base-client-button-ButtonCellDefaultAppearance-ButtonCellStyle-text').then($bts => {
     for (let i=0; i< $bts.length; i++) {

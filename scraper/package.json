@@ -4,12 +4,13 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "cypress run --env flags='{\"email\":\"ADD E-MAIL\",\"pw\":\"ADD PW\",\"year\":\"2022\"}' --spec 'cypress/e2e/clubdesk.cy.js'",
-    "open": "cypress open --env flags='{\"email\":\"ADD E-MAIL\",\"pw\":\"ADD PW\",\"year\":\"2022\"}'"
+    "start": "./debug.sh run",
+    "open": "./debug.sh"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "cypress": "^12.3.0"
+    "cypress": "^12.3.0",
+    "cypress-real-events": "^1.7.6"
   }
 }

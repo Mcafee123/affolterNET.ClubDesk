@@ -30,6 +30,7 @@ if (!Directory.Exists(scraperPath))
 {
     throw new DirectoryNotFoundException($"Scraper-Path \"{scraperPath}\" not found!");
 }
+
 var dataPath = Path.Combine(Environment.CurrentDirectory, relativeProjectRoot, "data").Normalize();
 if (!Directory.Exists(dataPath))
 {
@@ -37,45 +38,15 @@ if (!Directory.Exists(dataPath))
 }
 
 var outputPath = Path.Combine(scraperPath, "cypress", "downloads");
-var outputFile = Path.Combine(outputPath, "Export.csv");
 
-// downloader process starter
-var downloader = new AttendanceDownloader(scraperPath, email, pw);
-var currentYear = DateTime.Now.Year;
-var y = 2019;
-var retries = -1;
-while (y <= currentYear)
-{
-    var renamedOutput = Path.Combine(dataPath, $"Export-{y}.csv");
-    if (File.Exists(renamedOutput) && y != currentYear)
-    {
-        y++;
-        continue;
-    }
 
-    var result = downloader.GetCsv(y);
-    Console.WriteLine(result);
-    if (!File.Exists(outputFile))
-    {
-        retries++;
-        if (retries < 3)
-        {
-            Console.WriteLine("Error - Retry");
-        }
-        else
-        {
-            throw new InvalidOperationException($"output file \"{renamedOutput}\" not created - error occurred. see video");
-        }
-    }
-    else
-    {
-        if (File.Exists(renamedOutput))
-        {
-            File.Delete(renamedOutput);
-        }
-
-        File.Move(outputFile, renamedOutput);
-        retries = 0;
-        y++;
-    }
-}
+// update db
+var updater = new UpdateWorker(scraperPath, email, pw, dataPath);
+// download persons
+var personsOutputFile = Path.Combine(outputPath, "export.csv");
+// await updater.DownloadPersons(personsOutputFile);
+// download events and invitations
+var eventsOutputFile = Path.Combine(outputPath, "Export.csv");
+// await updater.DownloadEventsAndInvitations(eventsOutputFile);
+// update db
+await updater.UpdateDb(2019);

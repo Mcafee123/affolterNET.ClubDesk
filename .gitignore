@@ -41,6 +41,7 @@ Files/
 .DS_Store
 /.idea/**
 node_modules
+SQLite.Interop.dll
 __*.sh
 /scraper/cypress/downloads
 /scraper/cypress/videos
