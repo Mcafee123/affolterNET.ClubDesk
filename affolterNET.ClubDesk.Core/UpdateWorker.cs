@@ -1,3 +1,5 @@
+using affolterNET.ClubDesk.Core.Models;
+
 namespace affolterNET.ClubDesk.Core;
 
 public class UpdateWorker
@@ -6,10 +8,12 @@ public class UpdateWorker
     private readonly ClubdeskCsvReader _reader;
     private readonly DbWriter _writer;
     private readonly AttendanceDownloader _downloader;
+    private readonly string _personsFile;
 
     public UpdateWorker(string scraperPath, string email, string pw, string dataPath)
     {
         _dataPath = dataPath;
+        _personsFile = Path.Combine(_dataPath, "Export-Persons.csv");
         _downloader = new AttendanceDownloader(scraperPath, email, pw);
         _reader = new ClubdeskCsvReader(_dataPath);
         _writer = new DbWriter(_dataPath);
@@ -18,7 +22,6 @@ public class UpdateWorker
     public async Task DownloadPersons(string outputFile)
     {
         var retries = -1;
-        var renamedOutput = Path.Combine(_dataPath, $"Export-Persons.csv");
         while (retries < 3)
         {
             var result = _downloader.GetPersons();
@@ -37,17 +40,23 @@ public class UpdateWorker
             }
             else
             {
-                if (File.Exists(renamedOutput))
+                if (File.Exists(_personsFile))
                 {
-                    File.Delete(renamedOutput);
+                    File.Delete(_personsFile);
                 }
     
-                File.Move(outputFile, renamedOutput);
+                File.Move(outputFile, _personsFile);
                 return;
             }
         }
         throw new InvalidOperationException(
-            $"output file \"{renamedOutput}\" not created - error occurred. see video");
+            $"output file \"{_personsFile}\" not created - error occurred. see video");
+    }
+    
+    public async Task<List<Person>> UpdatePersons()
+    {
+        var pers = _reader.ReadPersons(_personsFile);
+        return await _writer.UpdatePersons(pers);
     }
 
     public async Task DownloadEventsAndInvitations(string outputFile)
@@ -100,7 +109,7 @@ public class UpdateWorker
         }
     }
     
-    public async Task UpdateDb(int? startByYear = null)
+    public async Task UpdateDb(List<Person> persons, int? startByYear = null)
     {
         // if a year is set, insert that and all following years,
         // otherwise just import the current year
@@ -110,6 +119,6 @@ public class UpdateWorker
         }
 
         var years = _reader.ReadInvitationFiles(startByYear.Value);
-        await _writer.Update(years);
+        await _writer.UpdateEventsAndInvitations(years, persons);
     }
 }

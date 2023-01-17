@@ -29,26 +29,23 @@ public class Database
         await cn.ExecuteAsync($"delete from Event where strftime('%Y', Start) in ({yearString})");
     }
 
-    public async Task<List<Person>> UpdatePersons(Dictionary<int, ParsedLists> years)
+    public async Task<List<Person>> UpdatePersons(List<Person> pers)
     {
         var cn = GetConn();
         List<Person> dbPersons = new();
-        foreach (var i in years.Keys)
+        foreach (var p in pers)
         {
-            dbPersons = (await cn.QueryAsync<Person>("select * from Person")).ToList();
-            foreach (var p in years[i].Persons)
+            var exists = await cn.QueryFirstOrDefaultAsync(@"select PersonId from Person where PersonId=@PersonId", p);
+            if (exists == null)
             {
-                var found = dbPersons.SingleOrDefault(dbp =>
-                    dbp.ExternalId == p.ExternalId);
-                if (found == null)
-                {
-                    await cn.ExecuteAsync("insert into Person (PersonId, Firstname, Lastname, ExternalId, Birthday) values (null, @Firstname, @Lastname, @ExternalId, @Birthday)", p);
-                    dbPersons = (await cn.QueryAsync<Person>("select * from Person")).ToList();
-                }   
+                await InsertPerson(cn, p);
+            }
+            else
+            {
+                await UpdatePerson(cn, p);
             }
         }
-
-        return dbPersons;
+        return (await cn.QueryAsync<Person>("select * from Person")).ToList();;
     }
 
     public async Task<List<Event>> UpdateEvents(Dictionary<int, ParsedLists> years)
@@ -88,6 +85,10 @@ public class Database
                 try
                 {
                     dbPerson = persons.Single(p => p.ExternalId == i.PersonExternalId);
+                    if (dbPerson == null)
+                    {
+                        dbPerson = persons.Where(p => p.Firstname == i.)
+                    }
                 }
                 catch
                 {
@@ -129,10 +130,47 @@ public class Database
         await EnsureTable("Person", $@"
             create table Person (
                 PersonId integer primary key,
-                ExternalId nvarchar(100) not null unique,
+                ExternalId nvarchar(100) not null,
                 Firstname nvarchar(100),
                 Lastname nvarchar(100),
-                Birthday datetime
+                Birthday datetime,
+                Vintage nvarchar(100),
+                Company nvarchar(100),
+                Address nvarchar(100),
+                AddressSuffix nvarchar(100),
+                Zip nvarchar(10),
+                City nvarchar(100),
+                Country nvarchar(100),
+                Nationality nvarchar(100),
+                PhonePrivate nvarchar(100),
+                PhoneBusiness nvarchar(100),
+                PhoneMobile nvarchar(100),
+                Fax nvarchar(100),
+                Salutation nvarchar(100),
+                LetterSalutation nvarchar(100),
+                Email1 nvarchar(100),
+                Email2 nvarchar(100),
+                Groups nvarchar(200),
+                Roles nvarchar(200),
+                MemberStatus nvarchar(100),
+                AccessionDate datetime,
+                ExitDate datetime,
+                MaritalStatus nvarchar(100),
+                Sex nvarchar(100),
+                Comments text,
+                BusinessWebsite nvarchar(100),
+                BillByEmail bit,
+                RemindOverdue bit,
+                Iban nvarchar(50),
+                Bic nvarchar(50),
+                AccountHolder nvarchar(100),
+                Title nvarchar(100),
+                PlayerNumber nvarchar(100),
+                Association nvarchar(100),
+                MemberYears int,
+                Age int,
+                ChangedAt datetime,
+                ChangedFrom nvarchar(100)
             );
         ");
 
@@ -169,5 +207,148 @@ public class Database
             return;
 
         await cn.ExecuteAsync(create);
+    }
+
+    private async Task UpdatePerson(DbConnection cn, Person p)
+    {
+        await cn.ExecuteAsync(@"
+            update Person set
+                PersonId=@PersonId,
+                Firstname=@Firstname,
+                Lastname=@Lastname,
+                ExternalId=@ExternalId,
+                Birthday=@Birthday,
+                Vintage=@Vintage,
+                Company=@Company,
+                Address=@Address,
+                AddressSuffix=@AddressSuffix,
+                Zip=@Zip,
+                City=@City,
+                Country=@Country,
+                Nationality=@Nationality,
+                PhonePrivate=@PhonePrivate,
+                PhoneBusiness=@PhoneBusiness,
+                PhoneMobile=@PhoneMobile,
+                Fax=@Fax,
+                Salutation=@Salutation,
+                LetterSalutation=@LetterSalutation,
+                Email1=@Email1,
+                Email2=@Email2,
+                Groups=@Groups,
+                Roles=@Roles,
+                MemberStatus=@MemberStatus,
+                AccessionDate=@AccessionDate,
+                ExitDate=@ExitDate,
+                MaritalStatus=@MaritalStatus,
+                Sex=@Sex,
+                Comments=@Comments,
+                BusinessWebsite=@BusinessWebsite,
+                BillByEmail=@BillByEmail,
+                RemindOverdue=@RemindOverdue,
+                Iban=@Iban,
+                Bic=@Bic,
+                AccountHolder=@AccountHolder,
+                Title=@Title,
+                PlayerNumber=@PlayerNumber,
+                Association=@Association,
+                MemberYears=@MemberYears,
+                Age=@Age,
+                ChangedAt=@ChangedAt,
+                ChangedFrom=@ChangedFrom
+            where PersonId=@PersonId
+        ", p);
+    }
+
+    private async Task InsertPerson(DbConnection cn, Person p)
+    {
+        await cn.ExecuteAsync(@"
+            insert into Person (
+                PersonId,
+                Firstname,
+                Lastname,
+                ExternalId,
+                Birthday,
+                Vintage,
+                Company,
+                Address,
+                AddressSuffix,
+                Zip,
+                City,
+                Country,
+                Nationality,
+                PhonePrivate,
+                PhoneBusiness,
+                PhoneMobile,
+                Fax,
+                Salutation,
+                LetterSalutation,
+                Email1,
+                Email2,
+                Groups,
+                Roles,
+                MemberStatus,
+                AccessionDate,
+                ExitDate,
+                MaritalStatus,
+                Sex,
+                Comments,
+                BusinessWebsite,
+                BillByEmail,
+                RemindOverdue,
+                Iban,
+                Bic,
+                AccountHolder,
+                Title,
+                PlayerNumber,
+                Association,
+                MemberYears,
+                Age,
+                ChangedAt,
+                ChangedFrom
+            ) values (
+                @PersonId,
+                @Firstname,
+                @Lastname,
+                @ExternalId,
+                @Birthday,
+                @Vintage,
+                @Company,
+                @Address,
+                @AddressSuffix,
+                @Zip,
+                @City,
+                @Country,
+                @Nationality,
+                @PhonePrivate,
+                @PhoneBusiness,
+                @PhoneMobile,
+                @Fax,
+                @Salutation,
+                @LetterSalutation,
+                @Email1,
+                @Email2,
+                @Groups,
+                @Roles,
+                @MemberStatus,
+                @AccessionDate,
+                @ExitDate,
+                @MaritalStatus,
+                @Sex,
+                @Comments,
+                @BusinessWebsite,
+                @BillByEmail,
+                @RemindOverdue,
+                @Iban,
+                @Bic,
+                @AccountHolder,
+                @Title,
+                @PlayerNumber,
+                @Association,
+                @MemberYears,
+                @Age,
+                @ChangedAt,
+                @ChangedFrom
+            )
+        ", p);
     }
 }

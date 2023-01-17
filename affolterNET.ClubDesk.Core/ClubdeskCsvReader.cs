@@ -25,6 +25,18 @@ public class ClubdeskCsvReader
         };
     }
 
+    public List<Person> ReadPersons(string personsFile)
+    {
+        var cfg = new CsvConfiguration(new CultureInfo("de-CH"))
+        {
+            HasHeaderRecord = true,
+        };
+        using var reader = new StreamReader(personsFile, Encoding.GetEncoding("iso-8859-1"));
+        using var csv = new CsvReader(reader, cfg);
+        var list = csv.GetRecords<Person>().ToList();
+        return list;
+    }
+
     public Dictionary<int, ParsedLists> ReadInvitationFiles(int startByYear)
     {
         Dictionary<int, ParsedLists> years = new();
@@ -71,10 +83,6 @@ public class ClubdeskCsvReader
 
             var birthdayString = row["Field3"].ToString();
             var externalId = row["Field4"].ToString()!;
-            if (string.IsNullOrWhiteSpace(externalId))
-            {
-                externalId = $"{first.ToLower()}.{last.ToLower()}.csvtool";
-            }
             var person = new Person(first, last)
             {
                 ExternalId = externalId
@@ -90,7 +98,6 @@ public class ClubdeskCsvReader
                         int.Parse(ma.Groups[Group.Day.ToString()].Value));
                 }
             }
-
 
             result.Persons.Add(person);
             int idx = 0;

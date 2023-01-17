@@ -7,6 +7,14 @@ describe('automate persons', function() {
   it('Personen', () => {
     cy.login()
     cy.get('div[qtip="Kontakte und Gruppen"]').click()
+    cy.get('span.GIIYKVVBDC-com-sencha-gxt-theme-base-client-tree-TreeBaseAppearance-TreeBaseStyle-text').then($divs => {
+      for (var i=0; i<$divs.length; i++) {
+        const $div = $divs[i]
+        if ($div.innerText === 'Alle Kontakte') {
+          cy.wrap($div).click()
+        }
+      }
+    })
     cy.wait(2000)
     cy.clickLink('Export')
     cy.get('div.GIIYKVVPPB-com-sencha-gxt-theme-base-client-field-TriggerFieldDefaultAppearance-TriggerFieldStyle-wrap').then($divs => {

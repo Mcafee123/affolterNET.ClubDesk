@@ -19,5 +19,8 @@ public class Invitation
 
     public Status Status => (Status)StatusId;
     public string PersonExternalId { get; } = null!;
+    public string PersonFirstName { get; set; }
+    public string PersonLastName { get; set; }
+    public DateTime? PersonBirthday { get; set; }
     public string EventTrackingId { get; } = null!;
 }

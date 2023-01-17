@@ -45,8 +45,11 @@ var updater = new UpdateWorker(scraperPath, email, pw, dataPath);
 // download persons
 var personsOutputFile = Path.Combine(outputPath, "export.csv");
 // await updater.DownloadPersons(personsOutputFile);
+// update db
+var pers = await updater.UpdatePersons();
+
 // download events and invitations
 var eventsOutputFile = Path.Combine(outputPath, "Export.csv");
 // await updater.DownloadEventsAndInvitations(eventsOutputFile);
 // update db
-await updater.UpdateDb(2019);
+await updater.UpdateDb(pers);
