@@ -12,6 +12,15 @@ ArgumentNullException.ThrowIfNull(email);
 
 var pw = config.GetValue<string>("pw");
 ArgumentNullException.ThrowIfNull(pw);
+
+var groups = config.GetValue<string?>("groups");
+if (string.IsNullOrWhiteSpace(groups))
+{
+    groups =
+        "Spiel 1. Mannschaft, Spiel 2. Mannschaft, Spiel 1. & 2. Mannschaft,Training 1. Mannschaft, Training 2. Mannschaft, Training 1. & 2. Mannschaft, Sitzung, Allgemein, Spiel Senioren, Training Senioren, Anlass EHC, Anlass SCO, Cupspiel";
+}
+
+var download = config.GetValue<bool?>("download") ?? false;
 var relativeProjectRoot = config.GetValue<string>("projectroot");
 if (string.IsNullOrWhiteSpace(relativeProjectRoot))
 {
@@ -41,15 +50,23 @@ var outputPath = Path.Combine(scraperPath, "cypress", "downloads");
 
 
 // update db
-var updater = new UpdateWorker(scraperPath, email, pw, dataPath);
+var updater = new UpdateWorker(scraperPath, email, pw, dataPath, groups);
 // download persons
 var personsOutputFile = Path.Combine(outputPath, "export.csv");
-// await updater.DownloadPersons(personsOutputFile);
+if (download)
+{
+    await updater.DownloadPersons(personsOutputFile);
+}
+
 // update db
 var pers = await updater.UpdatePersons();
 
 // download events and invitations
 var eventsOutputFile = Path.Combine(outputPath, "Export.csv");
-// await updater.DownloadEventsAndInvitations(eventsOutputFile);
+if (download)
+{
+    updater.DownloadEventsAndInvitations(eventsOutputFile);
+}
+
 // update db
-await updater.UpdateDb(pers);
+await updater.UpdateDb(pers, 2019);

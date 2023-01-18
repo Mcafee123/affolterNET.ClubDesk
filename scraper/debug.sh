@@ -18,5 +18,5 @@ fi
 if [ $action == "run" ]; then
   cypress run --env flags="{\"email\":\"$email\",\"pw\":\"$pw\",\"year\":\"2022\"}" --spec 'cypress/e2e/persons.cy.js'
 else
-  cypress open --env flags="{\"email\":\"$email\",\"pw\":\"$pw\",\"year\":\"2022\"}"
+  cypress open --env flags="{\"email\":\"$email\",\"pw\":\"$pw\",\"year\":\"2019\",\"group\":\"Training 1. & 2. Mannschaft\"}"
 fi

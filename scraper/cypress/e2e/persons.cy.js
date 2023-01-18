@@ -44,7 +44,6 @@ describe('automate persons', function() {
     cy.get('div.GIIYKVVOYB-com-sencha-gxt-theme-base-client-listview-ListViewDefaultAppearance-ListViewDefaultStyle-item').then($divs => {
       for (var i=0; i<$divs.length; i++) {
         var $div = $divs[i]
-        console.log($div)
         if ($div.innerText === 'Alle Spalten') {
           cy.wrap($div).realClick()
           cy.wait(200)

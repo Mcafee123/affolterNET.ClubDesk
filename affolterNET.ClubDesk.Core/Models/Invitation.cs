@@ -6,10 +6,13 @@ public class Invitation
     {
     }
 
-    public Invitation(Status status, string personExternalId, string eventTrackingId)
+    public Invitation(Status status, string eventTrackingId, string personFirstname, string personLastname, DateTime? personBirthday, string personExternalId)
     {
         PersonExternalId = personExternalId;
         EventTrackingId = eventTrackingId;
+        PersonFirstname = personFirstname;
+        PersonLastname = personLastname;
+        PersonBirthday = personBirthday;
         StatusId = (int)status;
     }
 
@@ -18,9 +21,10 @@ public class Invitation
     public int StatusId { get; set; }
 
     public Status Status => (Status)StatusId;
-    public string PersonExternalId { get; } = null!;
-    public string PersonFirstName { get; set; }
-    public string PersonLastName { get; set; }
+
     public DateTime? PersonBirthday { get; set; }
     public string EventTrackingId { get; } = null!;
+    public string PersonFirstname { get; } = null!;
+    public string PersonLastname { get; } = null!;
+    public string PersonExternalId { get; } = null!;
 }

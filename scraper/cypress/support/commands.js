@@ -40,7 +40,19 @@ Cypress.Commands.add('clickLink', (txt) => {
     for (let i=0; i< $bts.length; i++) {
       if ($bts[i].innerText === txt) {
         console.log($bts[i].innerText)
-        $bts[i].click()
+        cy.wrap($bts[i]).click()
+        break
+      }
+    }
+  })
+})
+
+Cypress.Commands.add('clickCheckboxLabel', (txt) => {
+  cy.get('.GIIYKVVNHB-com-sencha-gxt-theme-base-client-field-CheckBoxDefaultAppearance-CheckBoxStyle-checkBoxLabel').then($cbs => {
+    for (let i=0; i<$cbs.length; i++) {
+      const $cb = $cbs[i]
+      if ($cb.innerText === txt) {
+        cy.wrap($cb).click()
         break
       }
     }

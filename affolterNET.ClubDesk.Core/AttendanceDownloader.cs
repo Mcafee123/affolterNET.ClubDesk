@@ -15,9 +15,9 @@ public class AttendanceDownloader
         _pw = pw;
     }
 
-    public string GetAttendance(int year)
+    public string GetAttendance(int year, string group)
     {
-        var flags = $"{{\"\"email\"\":\"\"{_email}\"\",\"\"pw\"\":\"\"{_pw}\"\",\"\"year\"\":\"\"{year}\"\" }}";
+        var flags = $"{{\"\"email\"\":\"\"{_email}\"\",\"\"pw\"\":\"\"{_pw}\"\",\"\"year\"\":\"\"{year}\"\",\"\"group\"\":\"\"{group}\"\" }}";
         var process = new Process();
         var startInfo = new ProcessStartInfo
         {

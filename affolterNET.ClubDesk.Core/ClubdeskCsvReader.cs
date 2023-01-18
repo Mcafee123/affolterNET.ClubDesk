@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using affolterNET.ClubDesk.Core.Converters;
 using affolterNET.ClubDesk.Core.Models;
 using CsvHelper;
 using CsvHelper.Configuration;
@@ -12,6 +13,7 @@ public class ClubdeskCsvReader
 {
     private readonly string _dataPath;
     private readonly CsvConfiguration _cfg;
+    private readonly Regex _groupNameRx = new (@"[^a-zA-Z1-9\\-_]");
 
     private readonly string _birthdayRx =
         $"(?<{Group.Day}>[\\d]{{2,2}}).(?<{Group.Month}>[\\d]{{2,2}}).(?<{Group.Year}>[\\d]{{4,4}})";
@@ -37,31 +39,66 @@ public class ClubdeskCsvReader
         return list;
     }
 
-    public Dictionary<int, ParsedLists> ReadInvitationFiles(int startByYear)
+    public Dictionary<int, ParsedLists> ReadInvitationFiles(int startByYear, List<string> groups)
     {
         Dictionary<int, ParsedLists> years = new();
-        for (int i = startByYear; i <= DateTime.Now.Year; i++)
+        for (int year = startByYear; year <= DateTime.Now.Year; year++)
         {
-            years.Add(i, ReadInvitationFile(i));
+            var lists = new ParsedLists();
+            var di = new DirectoryInfo(_dataPath);
+            foreach (var file in di.GetFiles($"Export-{year}-*.csv"))
+            {
+                var eventType = GetEventType(file.FullName, groups);
+                var r = ReadInvitationFile(file.FullName, eventType);
+                lists.Invitations.AddRange(r.Invitations);
+                lists.Events.AddRange(r.Events);
+            }
+            years.Add(year, lists);
         }
 
         return years;
     }
 
-    private ParsedLists ReadInvitationFile(int year)
+    private string GetEventType(string file, List<string> groups)
     {
-        var inputCsv = Path.Combine(_dataPath, $"Export-{year}.csv");
+        var grpName = Path.GetFileNameWithoutExtension(file).Substring(12);
+        EventType? eventType = null;
+        foreach (var g in groups)
+        {
+            if (SanitizeGroupName(g) == grpName)
+            {
+                return g;
+            }
+        }
+        throw new InvalidOperationException($"eventtype \"{grpName}\" not in list");
+    }
+
+    public string SanitizeGroupName(string grp)
+    {
+        return _groupNameRx.Replace(grp, "_");
+    }
+
+    private ParsedLists ReadInvitationFile(string inputCsv, string eventType)
+    {
         using var reader = new StreamReader(inputCsv, Encoding.GetEncoding("iso-8859-1"));
         using var csv = new CsvReader(reader, _cfg);
         var records = csv.GetRecords<dynamic>().ToList();
-        IDictionary<string, object> header = records.First();
         var result = new ParsedLists();
+        if (records.Count < 1)
+        {
+            return result;
+        }
+
+        IDictionary<string, object> header = records.First();
         const int skipFields = 4; // number of items before the invitation
 
         // Events
         foreach (var kvp in header.Skip(skipFields))
         {
-            var t = new Event(kvp.Value.ToString() ?? string.Empty);
+            var t = new Event(kvp.Value.ToString() ?? string.Empty)
+            {
+                EventType = eventType
+            };
             result.Events.Add(t);
         }
 
@@ -82,44 +119,40 @@ public class ClubdeskCsvReader
             }
 
             var birthdayString = row["Field3"].ToString();
+            var birthday = new CdDateOnlyConverter().ConvertFromString(birthdayString, null!, null!) as DateTime?;
             var externalId = row["Field4"].ToString()!;
-            var person = new Person(first, last)
-            {
-                ExternalId = externalId
-            };
             
-            if (!string.IsNullOrWhiteSpace(birthdayString))
-            {
-                var ma = Regex.Match(birthdayString, _birthdayRx);
-                if (ma.Success)
-                {
-                    person.Birthday = new DateTime(int.Parse(ma.Groups[Group.Year.ToString()].Value),
-                        int.Parse(ma.Groups[Group.Month.ToString()].Value),
-                        int.Parse(ma.Groups[Group.Day.ToString()].Value));
-                }
-            }
-
-            result.Persons.Add(person);
             int idx = 0;
             foreach (var kvp in row.Skip(skipFields))
             {
-                switch (kvp.Value)
+                var inv = new Invitation(Status.None, result.Events[idx].TrackingId, first, last, birthday, externalId);
+                if (string.IsNullOrEmpty(kvp.Value.ToString()))
                 {
-                    case "-":
-                        break;
-                    case "Ja":
-                        result.Invitations.Add(new Invitation(Status.Ja, person.ExternalId, result.Events[idx].TrackingId));
-                        break;
-                    case "Nein":
-                        result.Invitations.Add(new Invitation(Status.Nein, person.ExternalId, result.Events[idx].TrackingId));
-                        break;
-                    case "":
-                        result.Invitations.Add(new Invitation(Status.None, person.ExternalId, result.Events[idx].TrackingId));
-                        break;
-                    default:
-                        throw new InvalidOperationException("invalid invitation status");
+                    // ok already as inv was initialized with Status.None
+                    result.Invitations.Add(inv);
                 }
-
+                else
+                {
+                    var status = kvp.Value.ToString()!;
+                    if (status == "-")
+                    {
+                        // person not invited to this event
+                    }
+                    else if (status == "Ja" || status.StartsWith("Ja "))
+                    {
+                        inv.StatusId = (int)Status.Ja;
+                        result.Invitations.Add(inv);
+                    }
+                    else if (status == "Nein" || status.StartsWith("Nein "))
+                    {
+                        inv.StatusId = (int)Status.Nein;
+                        result.Invitations.Add(inv);
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("invalid invitation status");
+                    }
+                }
                 idx++;
             }
         }

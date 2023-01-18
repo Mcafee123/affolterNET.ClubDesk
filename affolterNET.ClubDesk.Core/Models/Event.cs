@@ -35,6 +35,7 @@ public class Event
     }
 
     public int EventId { get; set; }
+    public int EventTypeId { get; set; }
     public string TrackingId { get; private set; }
     public DateTime Start { get; set; }
     public DateTime End { get; set; }
@@ -44,6 +45,7 @@ public class Event
     public int No { get; set; }
     public int None { get; set; }
     public int MayBe { get; set; }
+    public string? EventType { get; set; }
 }
 
 public enum Group

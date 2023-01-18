@@ -55,7 +55,17 @@ public class Database
         {
             foreach (var e in years[year].Events)
             {
-                await cn.ExecuteAsync("insert into Event (TrackingId, Start, End, Subject, Invited, Yes, No, None, MayBe) values (@TrackingId, @Start, @End, @Subject, @Invited, @Yes, @No, @None, @MayBe)",
+                // get by description
+                var et = await cn.QueryFirstOrDefaultAsync<EventType>(@"select * from EventType where Description=@EventType", e);
+                if (et == null)
+                {
+                    // insert and reload
+                    await cn.ExecuteAsync("insert into EventType (EventTypeId, Description) values (@EventTypeId, @EventType)", e);
+                    et = await cn.QueryFirstOrDefaultAsync<EventType>(@"select * from EventType where Description=@EventType", e);
+                }
+
+                e.EventTypeId = et.EventTypeId;
+                await cn.ExecuteAsync("insert into Event (TrackingId, EventTypeId, Start, End, Subject, Invited, Yes, No, None, MayBe) values (@TrackingId, @EventTypeId, @Start, @End, @Subject, @Invited, @Yes, @No, @None, @MayBe)",
                     e);
             }
         }
@@ -84,10 +94,23 @@ public class Database
                 Person dbPerson;
                 try
                 {
-                    dbPerson = persons.Single(p => p.ExternalId == i.PersonExternalId);
-                    if (dbPerson == null)
+                    var personList = persons.Where(p => p.ExternalId == i.PersonExternalId).ToList();
+                    if (personList.Count == 1)
                     {
-                        dbPerson = persons.Where(p => p.Firstname == i.)
+                        dbPerson = personList.First();
+                    }
+                    else
+                    {
+                        var personsByName = persons.Where(p => p.Firstname == i.PersonFirstname && p.Lastname == i.PersonLastname).ToList();
+                        if (personsByName.Count == 1)
+                        {
+                            dbPerson = personsByName.First();
+                        }
+                        else
+                        {
+                            // ToDo: check birthday...
+                            throw new InvalidOperationException("person is not uniquely identifyable");
+                        }
                     }
                 }
                 catch
@@ -99,8 +122,17 @@ public class Database
 
                 i.EventId = dbEvent.EventId;
                 i.PersonId = dbPerson.PersonId;
-                await cn.ExecuteAsync("insert into Invitation (EventId, PersonId, StatusId) values (@EventId, @PersonId, @StatusId)",
-                    i);
+                try
+                {
+                    await cn.ExecuteAsync(
+                        "insert into Invitation (EventId, PersonId, StatusId) values (@EventId, @PersonId, @StatusId)",
+                        i);
+                }
+                catch
+                {
+                    Console.WriteLine("Error: Saving invitation for {0} {1}; eventId: {2} failed", i.PersonFirstname, i.PersonLastname, dbEvent.EventId);
+                    throw;
+                }
             }
         }
     }
@@ -112,10 +144,18 @@ public class Database
 
     private async Task EnsureTables()
     {
+        await EnsureTable("EventType", @"
+            create table EventType (
+                EventTypeId int primary key,
+                Description nvarchar(100)
+            );
+        ");
+        
         await EnsureTable("Event", $@"
             create table Event (
                 EventId integer primary key,
                 TrackingId nvarchar(50) not null unique,
+                EventTypeId int not null,
                 Start datetime,
                 End datetime,
                 Subject nvarchar(1000),
@@ -123,7 +163,8 @@ public class Database
                 Yes int null,
                 No int null,
                 None int null,
-                MayBe int null
+                MayBe int null,
+                FOREIGN KEY(EventTypeId) REFERENCES EventType(EventTypeId)
             );
         ");
 
@@ -195,6 +236,47 @@ public class Database
                 FOREIGN KEY(StatusId) REFERENCES Status(StatusId)
             );
         ");
+
+        await EnsureView("EventReport", @"
+            create view EventReport 
+            as 
+            select 
+            EventType,
+            Start,
+            Subject,
+            (select Ja + Nein + KeineAntwort) as Invited,
+            Ja,
+            Nein,
+            KeineAntwort
+            from (
+	            select 
+		            et.Description as EventType,
+		            e.Start,
+		            e.Subject,
+		            case when s.Ja is null then 0 else s.Ja end as Ja,
+		            case when s.Nein is null then 0 else s.Nein end as Nein,
+		            case when s.KeineAntwort is null then 0 else s.KeineAntwort end as KeineAntwort
+	            from (select e.EventId, SUM(i.StatusId = 1) as Ja, e.Yes, SUM(i.StatusId = 2) as Nein, e.No, SUM(i.StatusId = 3) as KeineAntwort, e.None from Event e
+		            left join Invitation i on i.EventId = e.EventId
+	            group by e.EventId) s
+	            join Event e on e.EventId = s.EventId
+	            join EventType et on et.EventTypeId = e.EventTypeId
+            )
+        ");
+    }
+
+    private async Task EnsureView(string viewName, string create)
+    {
+        var cn = GetConn();
+        var view = await cn.QueryAsync<string>(
+            $"select name from sqlite_master where type='view' and name='{viewName}';");
+        var name = view.FirstOrDefault();
+        if (!string.IsNullOrEmpty(name) && name == viewName)
+        {
+            return;
+        }
+
+        await cn.ExecuteAsync(create);
     }
 
     private async Task EnsureTable(string tableName, string create)
@@ -204,7 +286,9 @@ public class Database
             $"SELECT name FROM sqlite_master WHERE type='table' AND name = '{tableName}';");
         var name = table.FirstOrDefault();
         if (!string.IsNullOrEmpty(name) && name == tableName)
+        {
             return;
+        }
 
         await cn.ExecuteAsync(create);
     }
