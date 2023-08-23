@@ -24,6 +24,16 @@
 // -- This will overwrite an existing command --
 // Cypress.Commands.overwrite('visit', (originalFn, url, options) => { ... })
 
+function log($elements) {
+  cy.log('Number of elements found:', $elements.length);
+  $elements.each((index, element) => {
+    const tagName = element.tagName;
+    const classNames = Array.from(element.classList).join(', ');
+    const innerText = element.innerText
+    cy.log(`Element ${index + 1}: TagName=${tagName}, ClassNames=${classNames}, InnerText=${innerText}`);
+  });
+}
+
 Cypress.Commands.add('login', () => {
   const uri = 'https://app.clubdesk.com'
   const paras = Cypress.env('flags')
@@ -35,43 +45,21 @@ Cypress.Commands.add('login', () => {
   cy.wait(3000)
 })
 
-Cypress.Commands.add('clickLink', (txt) => {
-  cy.get('div.GIIYKVVBFB-com-sencha-gxt-theme-base-client-button-ButtonCellDefaultAppearance-ButtonCellStyle-text').then($bts => {
-    for (let i=0; i< $bts.length; i++) {
-      if ($bts[i].innerText === txt) {
-        console.log($bts[i].innerText)
-        cy.wrap($bts[i]).click()
-        break
-      }
-    }
-  })
+Cypress.Commands.add('getMainLink', (txt) => {
+  return cy.get(`div[qtip="${txt}"]`)
 })
 
-Cypress.Commands.add('clickCheckboxLabel', (txt) => {
-  cy.get('.GIIYKVVNHB-com-sencha-gxt-theme-base-client-field-CheckBoxDefaultAppearance-CheckBoxStyle-checkBoxLabel').then($cbs => {
-    for (let i=0; i<$cbs.length; i++) {
-      const $cb = $cbs[i]
-      if ($cb.innerText === txt) {
-        cy.wrap($cb).click()
-        break
-      }
-    }
-  })
-})
-
-Cypress.Commands.add('getYear', () => {
-  cy.get('div.GIIYKVVFNC-com-sencha-gxt-theme-blue-client-panel-BlueHeaderAppearance-BlueHeaderStyle-headerText').then(function($divs) {
-    for (let i = 0; i<$divs.length; i++) {
-      const $div = $divs[i]
-      if ($div.id.endsWith('-20-label')) {
-        const y = $div.innerText
-        cy.log(y.length)
-        if (y.length > 6) {
-          const year = y.substring(6)
-          cy.log('Year:', year)
-          return cy.wrap(year)
-        }
-      }
-    }
-  })
-})
+Cypress.Commands.add('getByText', (innerText, selector) => {
+  if (selector) {
+    cy.get(selector).then($elements => {
+      const $filtered = $elements.filter(`:contains("${innerText}")`)
+      log($filtered)
+      return cy.wrap($filtered)
+    })
+  } else {
+    cy.contains(innerText).then(($elements) => {
+        log($elements)
+        return cy.wrap($elements);
+      });
+  }
+});

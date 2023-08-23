@@ -48,3 +48,8 @@ __*.sh
 /scraper/cypress/screenshots
 /data
 /affolterNET.ClubDesk.Terminal/pub
+/console
+/docker/clubdesk/scraper
+/docker/clubdesk/console
+/docker/clubdesk/run.sh
+/ics/wildstars.ics

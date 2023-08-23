@@ -12,7 +12,11 @@ include_file="__config.sh"
 if test -f "$include_file"; then
   . "$include_file"
   echo "email & pw loaded from: $include_file"
+else
+  echo "no local config file"
 fi
+
+echo "USING ACCOUNT: $email"
 
 pushd .
 cd console
