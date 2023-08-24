@@ -62,7 +62,6 @@ public class ClubdeskCsvReader
     private string GetEventType(string file, List<string> groups)
     {
         var grpName = Path.GetFileNameWithoutExtension(file).Substring(12);
-        EventType? eventType = null;
         foreach (var g in groups)
         {
             if (SanitizeGroupName(g) == grpName)
@@ -80,111 +79,121 @@ public class ClubdeskCsvReader
 
     private ParsedLists ReadInvitationFile(string inputCsv, string eventType)
     {
-        using var reader = new StreamReader(inputCsv, Encoding.GetEncoding("iso-8859-1"));
-        using var csv = new CsvReader(reader, _cfg);
-        var records = csv.GetRecords<dynamic>().ToList();
-        var result = new ParsedLists();
-        if (records.Count < 1)
+        try
         {
-            return result;
-        }
-
-        IDictionary<string, object> header = records.First();
-        const int skipFields = 4; // number of items before the invitation
-
-        // Events
-        foreach (var kvp in header.Skip(skipFields))
-        {
-            var t = new Event(kvp.Value.ToString() ?? string.Empty)
+            using var reader = new StreamReader(inputCsv, Encoding.GetEncoding("iso-8859-1"));
+            using var csv = new CsvReader(reader, _cfg);
+            var records = csv.GetRecords<dynamic>().ToList();
+            var result = new ParsedLists();
+            if (records.Count < 1)
             {
-                EventType = eventType
-            };
-            result.Events.Add(t);
-        }
-
-        // Invitations
-        foreach (IDictionary<string, object> row in records.Skip(1).Take(records.Count - 6))
-        {
-            if (row.Keys.Count - skipFields != result.Events.Count)
-            {
-                throw new InvalidOperationException("termin-invitation mismatch");
+                return result;
             }
 
-            var first = row["Field1"].ToString()!;
-            var last = row["Field2"].ToString()!;
-            if (first == string.Empty && last == string.Empty)
-            {
-                Console.WriteLine("deleted or empty person-object, do not get attendance");
-                continue;
-            }
+            IDictionary<string, object> header = records.First();
+            const int skipFields = 4; // number of items before the invitation
 
-            var birthdayString = row["Field3"].ToString();
-            var birthday = new CdDateOnlyConverter().ConvertFromString(birthdayString, null!, null!) as DateTime?;
-            var externalId = row["Field4"].ToString()!;
-            
-            int idx = 0;
-            foreach (var kvp in row.Skip(skipFields))
+            // Events
+            foreach (var kvp in header.Skip(skipFields))
             {
-                var inv = new Invitation(Status.None, result.Events[idx].TrackingId, first, last, birthday, externalId);
-                if (string.IsNullOrEmpty(kvp.Value.ToString()))
+                var t = new Event(kvp.Value.ToString() ?? string.Empty)
                 {
-                    // ok already as inv was initialized with Status.None
-                    result.Invitations.Add(inv);
+                    EventType = eventType
+                };
+                result.Events.Add(t);
+            }
+
+            // Invitations
+            foreach (IDictionary<string, object> row in records.Skip(1).Take(records.Count - 6))
+            {
+                if (row.Keys.Count - skipFields != result.Events.Count)
+                {
+                    throw new InvalidOperationException("termin-invitation mismatch");
                 }
-                else
+
+                var first = row["Field1"].ToString()!;
+                var last = row["Field2"].ToString()!;
+                if (first == string.Empty && last == string.Empty)
                 {
-                    var status = kvp.Value.ToString()!;
-                    if (status == "-")
+                    Console.WriteLine("deleted or empty person-object, do not get attendance");
+                    continue;
+                }
+
+                var birthdayString = row["Field3"].ToString();
+                var birthday = new CdDateOnlyConverter().ConvertFromString(birthdayString, null!, null!) as DateTime?;
+                var externalId = row["Field4"].ToString()!;
+
+                int idx = 0;
+                foreach (var kvp in row.Skip(skipFields))
+                {
+                    var inv = new Invitation(Status.None, result.Events[idx].TrackingId, first, last, birthday,
+                        externalId);
+                    if (string.IsNullOrEmpty(kvp.Value.ToString()))
                     {
-                        // person not invited to this event
-                    }
-                    else if (status == "Ja" || status.StartsWith("Ja "))
-                    {
-                        inv.StatusId = (int)Status.Ja;
-                        result.Invitations.Add(inv);
-                    }
-                    else if (status == "Nein" || status.StartsWith("Nein "))
-                    {
-                        inv.StatusId = (int)Status.Nein;
+                        // ok already as inv was initialized with Status.None
                         result.Invitations.Add(inv);
                     }
                     else
                     {
-                        throw new InvalidOperationException("invalid invitation status");
+                        var status = kvp.Value.ToString()!;
+                        if (status == "-")
+                        {
+                            // person not invited to this event
+                        }
+                        else if (status == "Ja" || status.StartsWith("Ja "))
+                        {
+                            inv.StatusId = (int)Status.Ja;
+                            result.Invitations.Add(inv);
+                        }
+                        else if (status == "Nein" || status.StartsWith("Nein "))
+                        {
+                            inv.StatusId = (int)Status.Nein;
+                            result.Invitations.Add(inv);
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException("invalid invitation status");
+                        }
                     }
+
+                    idx++;
                 }
-                idx++;
             }
-        }
 
-        // Summaries
-        foreach (IDictionary<string, object> row in records.Skip(records.Count - 5))
-        {
-            var entries = row.Values.Skip(skipFields).Cast<string>().Select(int.Parse).ToList();
-            var label = row["Field1"].ToString()!;
-            switch (label)
+            // Summaries
+            foreach (IDictionary<string, object> row in records.Skip(records.Count - 5))
             {
-                case "Eingeladen":
-                    Set(entries, (i, count) => result.Events[i].Invited = count);
-                    break;
-                case "Ja":
-                    Set(entries, (i, count) => result.Events[i].Yes = count);
-                    break;
-                case "Nein":
-                    Set(entries, (i, count) => result.Events[i].No = count);
-                    break;
-                case "Vielleicht":
-                    Set(entries, (i, count) => result.Events[i].MayBe = count);
-                    break;
-                case "Keine Antwort":
-                    Set(entries, (i, count) => result.Events[i].None = count);
-                    break;
-                default:
-                    throw new InvalidOperationException("invalid invitation status");
+                var entries = row.Values.Skip(skipFields).Cast<string>().Select(int.Parse).ToList();
+                var label = row["Field1"].ToString()!;
+                switch (label)
+                {
+                    case "Eingeladen":
+                        Set(entries, (i, count) => result.Events[i].Invited = count);
+                        break;
+                    case "Ja":
+                        Set(entries, (i, count) => result.Events[i].Yes = count);
+                        break;
+                    case "Nein":
+                        Set(entries, (i, count) => result.Events[i].No = count);
+                        break;
+                    case "Vielleicht":
+                        Set(entries, (i, count) => result.Events[i].MayBe = count);
+                        break;
+                    case "Keine Antwort":
+                        Set(entries, (i, count) => result.Events[i].None = count);
+                        break;
+                    default:
+                        throw new InvalidOperationException("invalid invitation status");
+                }
             }
-        }
 
-        return result;
+            return result;
+        }
+        catch
+        {
+            Console.WriteLine($"Exception in {inputCsv} ({eventType})");
+            throw;
+        }
     }
 
     private void Set(List<int> entries, Action<int, int> setter)

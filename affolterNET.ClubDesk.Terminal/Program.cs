@@ -65,7 +65,7 @@ var pers = await updater.UpdatePersons();
 var eventsOutputFile = Path.Combine(outputPath, "Export.csv");
 if (download)
 {
-    updater.DownloadEventsAndInvitations(eventsOutputFile);
+    await updater.DownloadEventsAndInvitations(eventsOutputFile);
 }
 
 // update db

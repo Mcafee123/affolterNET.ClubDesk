@@ -31,7 +31,7 @@ public class UpdateWorker
             var i = 0;
             while (!File.Exists(outputFile) && i < 5)
             {
-                await Task.Delay(200);
+                await Task.Delay(retries * 2000);
                 i++;
             }
             
@@ -61,7 +61,7 @@ public class UpdateWorker
         return await _writer.UpdatePersons(pers);
     }
 
-    public void DownloadEventsAndInvitations(string outputFile)
+    public async Task DownloadEventsAndInvitations(string outputFile)
     {
         var currentYear = DateTime.Now.Year;
         for (var y = 2019; y <= currentYear; y++)
@@ -90,7 +90,8 @@ public class UpdateWorker
                         {
                             Console.WriteLine(result);
                             Console.WriteLine("Error - Retry {0}: \"{1}\", {2}", retries, grp, y);
-                            CopyVideo(outputFile, videoDestPath, "invitations.cy.js.mp4");
+                            CopyVideo(outputFile, videoDestPath, "invitations.cy.js.mp4", retries);
+                            await Task.Delay(retries * 2000);
                         }
                         else
                         {
@@ -128,12 +129,12 @@ public class UpdateWorker
         await _writer.UpdateEventsAndInvitations(years, persons);
     }
 
-    private void CopyVideo(string outputFile, string videoDestPath, string videoFileName)
+    private void CopyVideo(string outputFile, string videoDestPath, string videoFileName, int retryCount)
     {
         var outputPath = Path.GetDirectoryName(outputFile)!;
         var videoFile = Path.Combine(outputPath, "..", "videos", videoFileName);
         var d = DateTime.Now;
-        var videoDestFileName = $"{d.Year}-{d.Month}-{d.Day} {d.Hour}_{d.Minute}_{d.Second}.mp4";
+        var videoDestFileName = $"try-{retryCount}-{d.Year}-{d.Month}-{d.Day} {d.Hour}_{d.Minute}_{d.Second}.mp4";
         if (!Directory.Exists(videoDestPath))
         {
             Directory.CreateDirectory(videoDestPath);
